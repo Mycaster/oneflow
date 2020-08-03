@@ -1,3 +1,18 @@
+/*
+Copyright 2020 The OneFlow Authors. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 #include "oneflow/core/operator/operator.h"
 #include "oneflow/core/job/sbp_signature_builder.h"
 #include "oneflow/core/job/mirrored_sig_infer_hint.h"
@@ -87,6 +102,23 @@ class CastToMirroredOp : public MirroredCastOp {
   const PbMessage& GetCustomizedConf() const override { return op_conf().cast_to_mirrored_conf(); }
 
  private:
+  Maybe<void> InferLogicalOutBlobDescs(
+      const std::function<BlobDesc*(const std::string&)>& BlobDesc4BnInOp,
+      const std::function<Maybe<const OptInt64*>(const std::string&)>& BatchAxis4Ibn,
+      const ParallelDesc& parallel_desc) const override {
+    const auto& batch_axis = *JUST(BatchAxis4Ibn("in"));
+    BlobDesc* out = BlobDesc4BnInOp("out");
+    *out = *BlobDesc4BnInOp("in");
+    if (batch_axis.has_value()) {
+      CHECK_GE_OR_RETURN(batch_axis.value(), 0);
+      CHECK_LT_OR_RETURN(batch_axis.value(), out->shape().NumAxes());
+      int64_t dim = out->shape().At(batch_axis.value());
+      CHECK_EQ_OR_RETURN(dim % parallel_desc.parallel_num(), 0);
+      out->mut_shape().Set(batch_axis.value(), dim / parallel_desc.parallel_num());
+    }
+    return Maybe<void>::Ok();
+  }
+
   Maybe<void> InferSbpSignature(
       SbpSignature* sbp_signature, const SbpSignature& sbp_sig_conf,
       const std::function<int32_t(const SbpSignature&)>& CalcOrderValue4SbpSig,
@@ -133,6 +165,21 @@ class CastFromMirroredOp : public MirroredCastOp {
   }
 
  private:
+  Maybe<void> InferLogicalOutBlobDescs(
+      const std::function<BlobDesc*(const std::string&)>& BlobDesc4BnInOp,
+      const std::function<Maybe<const OptInt64*>(const std::string&)>& BatchAxis4Ibn,
+      const ParallelDesc& parallel_desc) const override {
+    const auto& batch_axis = *JUST(BatchAxis4Ibn("in"));
+    BlobDesc* out = BlobDesc4BnInOp("out");
+    *out = *BlobDesc4BnInOp("in");
+    if (batch_axis.has_value()) {
+      CHECK_GE_OR_RETURN(batch_axis.value(), 0);
+      CHECK_LT_OR_RETURN(batch_axis.value(), out->shape().NumAxes());
+      int64_t dim = out->shape().At(batch_axis.value());
+      out->mut_shape().Set(batch_axis.value(), dim * parallel_desc.parallel_num());
+    }
+    return Maybe<void>::Ok();
+  }
   Maybe<void> InferSbpSignature(
       SbpSignature* sbp_signature, const SbpSignature& sbp_sig_conf,
       const std::function<int32_t(const SbpSignature&)>& CalcOrderValue4SbpSig,

@@ -1,3 +1,18 @@
+"""
+Copyright 2020 The OneFlow Authors. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 from __future__ import absolute_import
 
 from typing import Optional, Sequence, Union
@@ -23,7 +38,7 @@ def api_two_stage_reduce_max(
     return func(x, axis=axis, keepdims=keepdims, name=name)
 
 
-@enable_if.condition(hob.in_global_mode & ~hob.eager_execution_enabled)
+@enable_if.condition(hob.in_global_mode)
 def two_stage_reduce_max(x, axis=None, keepdims=False, name=None):
     name = name if name is not None else id_util.UniqueStr("ReduceMax_")
     return two_stage_reduce(x, axis, keepdims, "reduce_max", name)
@@ -40,7 +55,7 @@ def api_two_stage_reduce_min(
     return func(x, axis=axis, keepdims=keepdims, name=name)
 
 
-@enable_if.condition(hob.in_global_mode & ~hob.eager_execution_enabled)
+@enable_if.condition(hob.in_global_mode)
 def two_stage_reduce_min(x, axis=None, keepdims=False, name=None):
     name = name if name is not None else id_util.UniqueStr("ReduceMin_")
     return two_stage_reduce(x, axis, keepdims, "reduce_min", name)

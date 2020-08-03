@@ -1,3 +1,18 @@
+"""
+Copyright 2020 The OneFlow Authors. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import oneflow as flow
 import numpy as np
 import os
@@ -10,7 +25,10 @@ def test_lazy_input_output(test_case):
     flow.clear_default_session()
     flow.enable_eager_execution(False)
 
-    @flow.global_function()
+    func_config = flow.FunctionConfig()
+    func_config.default_logical_view(flow.scope.mirrored_view())
+
+    @flow.global_function(function_config=func_config)
     def foo_job(input_def: oft.Numpy.Placeholder(shape=(2, 5))):
         var = flow.get_variable(
             name="var",
@@ -18,6 +36,8 @@ def test_lazy_input_output(test_case):
             dtype=flow.float,
             initializer=flow.ones_initializer(),
         )
+        input_def = flow.cast_to_current_logical_view(input_def)
+        var = flow.cast_to_current_logical_view(var)
         output = var + input_def
         return output
 
@@ -34,7 +54,10 @@ def test_eager_output(test_case):
     flow.clear_default_session()
     flow.enable_eager_execution()
 
-    @flow.global_function()
+    func_config = flow.FunctionConfig()
+    func_config.default_logical_view(flow.scope.mirrored_view())
+
+    @flow.global_function(function_config=func_config)
     def foo_job():
         x = flow.constant(1, shape=(2, 5), dtype=flow.float)
         return x
@@ -50,7 +73,10 @@ def test_eager_multi_output(test_case):
     flow.clear_default_session()
     flow.enable_eager_execution()
 
-    @flow.global_function()
+    func_config = flow.FunctionConfig()
+    func_config.default_logical_view(flow.scope.mirrored_view())
+
+    @flow.global_function(function_config=func_config)
     def foo_job():
         x = flow.constant(1, shape=(2, 5), dtype=flow.float)
         y = flow.get_variable(
@@ -75,10 +101,13 @@ def test_eager_input(test_case):
     flow.clear_default_session()
     flow.enable_eager_execution()
 
+    func_config = flow.FunctionConfig()
+    func_config.default_logical_view(flow.scope.mirrored_view())
+
     input = np.random.rand(2, 5).astype(np.single)
     output = np.maximum(input, 0)
 
-    @flow.global_function()
+    @flow.global_function(function_config=func_config)
     def foo_job(x_def: oft.ListNumpy.Placeholder(shape=(2, 5), dtype=flow.float)):
         y = flow.math.relu(x_def)
         test_case.assertTrue(np.allclose(y.numpy(0), output))
@@ -91,10 +120,13 @@ def test_eager_input_fixed(test_case):
     flow.clear_default_session()
     flow.enable_eager_execution()
 
+    func_config = flow.FunctionConfig()
+    func_config.default_logical_view(flow.scope.mirrored_view())
+
     input = np.arange(10).astype(np.single)
     output = input + 1.0
 
-    @flow.global_function()
+    @flow.global_function(function_config=func_config)
     def foo_job(x_def: oft.Numpy.Placeholder(shape=(10,), dtype=flow.float)):
         y = x_def + flow.constant(1.0, shape=(1,), dtype=flow.float)
         test_case.assertTrue(np.allclose(y.numpy(0), output))
@@ -107,11 +139,14 @@ def test_eager_multi_input(test_case):
     flow.clear_default_session()
     flow.enable_eager_execution()
 
+    func_config = flow.FunctionConfig()
+    func_config.default_logical_view(flow.scope.mirrored_view())
+
     input_1 = np.random.rand(3, 4).astype(np.single)
     input_2 = np.array([2]).astype(np.single)
     output = input_1 * input_2
 
-    @flow.global_function()
+    @flow.global_function(function_config=func_config)
     def foo_job(
         x_def: oft.ListNumpy.Placeholder(shape=(3, 4), dtype=flow.float),
         y_def: oft.ListNumpy.Placeholder(shape=(1,), dtype=flow.float),
@@ -127,10 +162,13 @@ def test_eager_input_output(test_case):
     flow.clear_default_session()
     flow.enable_eager_execution()
 
+    func_config = flow.FunctionConfig()
+    func_config.default_logical_view(flow.scope.mirrored_view())
+
     input = np.random.rand(5, 4).astype(np.single)
     output = input * 2.0
 
-    @flow.global_function()
+    @flow.global_function(function_config=func_config)
     def foo_job(x_def: oft.ListNumpy.Placeholder(shape=(5, 4), dtype=flow.float)):
         y = x_def * flow.constant(2.0, shape=(1,), dtype=flow.float)
         return y

@@ -1,3 +1,18 @@
+"""
+Copyright 2020 The OneFlow Authors. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 from collections import OrderedDict
 
 import numpy as np
@@ -30,7 +45,7 @@ def _of_assign_and_relu(value, dtype, device_type):
     func_config.default_data_type(dtype)
     func_config.default_placement_scope(flow.scope.placement(device_type, "0:0"))
 
-    @flow.global_function(func_config)
+    @flow.global_function(function_config=func_config)
     def assign_fn(value_def: oft.Numpy.Placeholder(value.shape, dtype=dtype)):
         var = flow.get_variable(
             name="var",
@@ -40,7 +55,7 @@ def _of_assign_and_relu(value, dtype, device_type):
         )
         flow.assign(var, value_def)
 
-    @flow.global_function(func_config)
+    @flow.global_function(function_config=func_config)
     def relu_fn():
         var = flow.get_variable(
             name="var",
